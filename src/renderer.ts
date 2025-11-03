@@ -48,8 +48,22 @@ const drawerOverlay = document.getElementById('drawer-overlay');
 const closeDrawerBtn = document.getElementById('close-drawer');
 const canvasContent = document.getElementById('canvas-content');
 
+// 工具栏元素
+const toolbar = document.getElementById('toolbar');
+const textToolBtn = document.getElementById('text-tool');
+const rectToolBtn = document.getElementById('rect-tool');
+const selectToolBtn = document.getElementById('select-tool');
+
 // 抽屉状态
 let isDrawerOpen = false;
+
+// 工具栏状态
+type ToolType = 'select' | 'text' | 'rect';
+let currentTool: ToolType = 'select';
+
+// 画布元素存储
+const canvasElements: Map<string, HTMLElement> = new Map();
+let nextElementId = 1;
 
 // 画布状态
 let canvasTransform = {
@@ -67,6 +81,184 @@ let dragOffset = { x: 0, y: 0 };
 const appBlocks: Map<string, AppBlock> = new Map();
 let nextBlockId = 1;
 let nextBlockPosition = { x: 100, y: 100 };
+
+// 切换工具
+function switchTool(tool: ToolType) {
+  currentTool = tool;
+  
+  // 更新工具按钮状态
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (tool === 'select') {
+    selectToolBtn?.classList.add('active');
+  } else if (tool === 'text') {
+    textToolBtn?.classList.add('active');
+  } else if (tool === 'rect') {
+    rectToolBtn?.classList.add('active');
+  }
+  
+  // 更新画布光标
+  if (canvasContent) {
+    if (tool === 'select') {
+      canvasContent.style.cursor = 'default';
+    } else if (tool === 'text') {
+      canvasContent.style.cursor = 'text';
+    } else if (tool === 'rect') {
+      canvasContent.style.cursor = 'crosshair';
+    }
+  }
+}
+
+// 创建文字元素
+function createTextElement(x: number, y: number) {
+  if (!canvasContent) return;
+  
+  const elementId = `text-element-${nextElementId++}`;
+  
+  // 创建文字元素
+  const textElement = document.createElement('div');
+  textElement.className = 'canvas-element text-element';
+  textElement.id = elementId;
+  textElement.contentEditable = 'true';
+  textElement.style.left = `${x}px`;
+  textElement.style.top = `${y}px`;
+  textElement.innerText = '双击编辑文字';
+  
+  // 添加到画布
+  canvasContent.appendChild(textElement);
+  
+  // 存储元素
+  canvasElements.set(elementId, textElement);
+  
+  // 使元素可拖拽
+  makeElementDraggable(textElement);
+  
+  // 自动选中文字
+  textElement.focus();
+  // 选中所有文字
+  const range = document.createRange();
+  range.selectNodeContents(textElement);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+// 创建矩形元素
+function createRectElement(x: number, y: number) {
+  if (!canvasContent) return;
+  
+  const elementId = `rect-element-${nextElementId++}`;
+  
+  // 创建矩形元素
+  const rectElement = document.createElement('div');
+  rectElement.className = 'canvas-element rect-element';
+  rectElement.id = elementId;
+  rectElement.style.left = `${x}px`;
+  rectElement.style.top = `${y}px`;
+  rectElement.style.width = '150px';
+  rectElement.style.height = '100px';
+  
+  // 创建调整大小的手柄
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'resize-handle se';
+  rectElement.appendChild(resizeHandle);
+  
+  // 添加到画布
+  canvasContent.appendChild(rectElement);
+  
+  // 存储元素
+  canvasElements.set(elementId, rectElement);
+  
+  // 使元素可拖拽和可调整大小
+  makeElementDraggable(rectElement);
+  makeElementResizable(rectElement, resizeHandle);
+}
+
+// 使画布元素可拖拽
+function makeElementDraggable(element: HTMLElement) {
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let initialLeft = 0;
+  let initialTop = 0;
+  
+  element.addEventListener('mousedown', (e) => {
+    // 如果是文字元素且处于编辑状态，不启动拖拽
+    if (element.classList.contains('text-element') && element.contentEditable === 'true') {
+      return;
+    }
+    
+    // 如果是调整大小的手柄，不启动拖拽
+    if ((e.target as HTMLElement).classList.contains('resize-handle')) {
+      return;
+    }
+    
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initialLeft = element.offsetLeft;
+    initialTop = element.offsetTop;
+    element.style.zIndex = '1000';
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    element.style.left = `${initialLeft + dx}px`;
+    element.style.top = `${initialTop + dy}px`;
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      element.style.zIndex = '';
+    }
+  });
+}
+
+// 使元素可调整大小
+function makeElementResizable(element: HTMLElement, handle: HTMLElement) {
+  let isResizing = false;
+  let startX = 0;
+  let startY = 0;
+  let initialWidth = 0;
+  let initialHeight = 0;
+  
+  handle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initialWidth = element.offsetWidth;
+    initialHeight = element.offsetHeight;
+    element.style.zIndex = '1000';
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    element.style.width = `${Math.max(50, initialWidth + dx)}px`;
+    element.style.height = `${Math.max(50, initialHeight + dy)}px`;
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      element.style.zIndex = '';
+    }
+  });
+}
 
 // 打开抽屉
 function openDrawer() {
@@ -507,10 +699,28 @@ function initInfiniteCanvas() {
   viewport.addEventListener('mousedown', (e) => {
     // 检查是否点击了应用块或其子元素
     const target = e.target as HTMLElement;
-    if (target.closest('.app-block')) {
-      return; // 如果点击了应用块，不启动画布拖拽
+    if (target.closest('.app-block') || target.closest('.canvas-element')) {
+      return; // 如果点击了应用块或画布元素，不启动画布拖拽
     }
     
+    // 如果当前工具不是选择工具，创建对应元素
+    if (currentTool === 'text') {
+      // 计算相对于画布内容的位置
+      const rect = canvasContent.getBoundingClientRect();
+      const x = (e.clientX - rect.left - canvasTransform.x) / canvasTransform.scale;
+      const y = (e.clientY - rect.top - canvasTransform.y) / canvasTransform.scale;
+      createTextElement(x, y);
+      return;
+    } else if (currentTool === 'rect') {
+      // 计算相对于画布内容的位置
+      const rect = canvasContent.getBoundingClientRect();
+      const x = (e.clientX - rect.left - canvasTransform.x) / canvasTransform.scale;
+      const y = (e.clientY - rect.top - canvasTransform.y) / canvasTransform.scale;
+      createRectElement(x, y);
+      return;
+    }
+    
+    // 选择工具模式下，启动画布拖拽
     isDragging = true;
     dragStart.x = e.clientX;
     dragStart.y = e.clientY;
@@ -594,6 +804,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   toggleDrawerBtn?.addEventListener('click', toggleDrawer);
   drawerOverlay?.addEventListener('click', closeDrawer);
   closeDrawerBtn?.addEventListener('click', closeDrawer);
+  
+  // 绑定工具栏按钮事件
+  textToolBtn?.addEventListener('click', () => switchTool('text'));
+  rectToolBtn?.addEventListener('click', () => switchTool('rect'));
+  selectToolBtn?.addEventListener('click', () => switchTool('select'));
   
   // 初始化无限画布
   initInfiniteCanvas();
