@@ -16,8 +16,36 @@
             <div class="drawer-actions">
                 <button id="refresh-apps-btn" class="refresh-btn">刷新应用</button>
             </div>
-            <div id="apps-container" class="apps-grid">
+            <div id="apps-container" class="">
                 <p>正在加载应用列表...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 网页抽屉 -->
+    <div id="web-drawer" class="drawer">
+        <div class="drawer-header">
+            <h2>打开网页</h2>
+            <button id="close-web-drawer" class="close-btn">×</button>
+        </div>
+        <div class="drawer-content">
+            <div class="web-input-section">
+                <h3>输入网址</h3>
+                <div class="url-input-container">
+                    <input type="url" id="web-url-input" class="url-input" placeholder="输入网址，例如: https://example.com">
+                    <button id="web-open-btn" class="open-web-btn">打开</button>
+                </div>
+            </div>
+            
+            <!-- 常用网站快捷方式 -->
+            <div class="quick-links">
+                <h3>常用网站</h3>
+                <div class="quick-links-grid">
+                    <a href="#" class="quick-link" data-url="https://www.google.com">Google</a>
+                    <a href="#" class="quick-link" data-url="https://www.github.com">GitHub</a>
+                    <a href="#" class="quick-link" data-url="https://www.stackoverflow.com">Stack Overflow</a>
+                    <a href="#" class="quick-link" data-url="https://www.wikipedia.org">Wikipedia</a>
+                </div>
             </div>
         </div>
     </div>
@@ -46,9 +74,16 @@
     </div>
     
     <!-- 加号图标按钮 -->
-    <button id="toggle-drawer" class="toggle-drawer-btn">
+    <button id="toggle-drawer" class="toggle-drawer-btn" title="打开应用">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
+    
+    <!-- 网页加号图标按钮 -->
+    <button id="toggle-web-drawer" class="toggle-drawer-btn web-drawer-btn" title="打开网页">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     </button>
     
