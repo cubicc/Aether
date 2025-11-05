@@ -289,13 +289,37 @@ ipcMain.handle('get-installed-apps', async () => {
 // 启动应用程序
 ipcMain.handle('launch-app', async (event, appPath: string) => {
   return new Promise((resolve, reject) => {
-    exec(`"${appPath}"`, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve({ stdout, stderr });
-      }
+    // 使用spawn而不是exec，这样不会等待应用程序退出
+    const { spawn } = require('child_process');
+    
+    // 在Windows上，对于GUI应用程序，我们需要使用start命令来启动它们
+    // 这样可以确保应用程序启动后立即返回，而不等待应用程序退出
+    const isWindows = process.platform === 'win32';
+    let command, args;
+    
+    if (isWindows) {
+      // 在Windows上使用start命令启动GUI应用程序
+      command = 'cmd';
+      args = ['/c', 'start', '', '""', `"${appPath}"`];
+    } else {
+      // 在其他平台上直接使用应用程序路径
+      command = appPath;
+      args = [];
+    }
+    
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: 'ignore',
+      shell: true
     });
+    
+    // 不等待子进程退出，立即返回
+    child.unref();
+    
+    // 给应用程序一点时间启动
+    setTimeout(() => {
+      resolve({ success: true });
+    }, 500);
   });
 });
 
